@@ -939,15 +939,33 @@ document.getElementById('postBody').addEventListener('input',function(){
   badge.className='word-counter'+(words>=1500?' good':'');
 });
 
-// PUBLISH
-function publishPost(){
-  const title=document.getElementById('postTitle').value.trim();
-  const body=document.getElementById('postBody').value.trim();
-  const words=body.split(/\s+/).filter(w=>w.length>0).length;
-  if(!title){alert('Please add a title for your post.');return;}
-  if(words<100){alert('Please write at least 100 words to publish.');return;}
-  closeModal();
-  alert('🎉 Post "'+title+'" published successfully!\n\n📊 Word count: '+words+' words\n✅ Your post is now live on AIToolsPro.');
+async function publishPost() {
+  const title = document.getElementById('postTitle').value.trim();
+  const category = document.getElementById('postCat').value;
+  const subtitle = document.getElementById('postSub').value.trim();
+  const body = document.getElementById('postBody').value.trim();
+  const author = document.getElementById('postAuthor').value.trim();
+  const ratingMatch = document.getElementById('postRating').value.match(/[\d.]+/);
+  const rating = ratingMatch ? parseFloat(ratingMatch[0]) : 5.0;
+  const words = body.split(/\s+/).filter((w) => w.length > 0).length;
+
+  if (!title) { alert('Please add a title for your post.'); return; }
+  if (!author) { alert('Please add your name.'); return; }
+  if (words < 100) { alert('Please write at least 100 words to publish.'); return; }
+
+  try {
+    const res = await fetch(API_BASE_URL + '/posts.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      body: JSON.stringify({ title, category, subtitle, body, author, rating }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to publish');
+    closeModal();
+    alert('🎉 Post "' + title + '" published successfully!\n\n📊 Word count: ' + words + ' words\n✅ Your post is now live on AIToolsPro.');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
 }
 
 // PROGRESS BAR
@@ -957,6 +975,36 @@ window.addEventListener('scroll',function(){
   const h=document.documentElement.scrollHeight-window.innerHeight;
   const pct=h>0?(window.scrollY/h*100).toFixed(1)+'%':'0%';
   document.getElementById('progress').style.width=pct;
+});
+  const API_BASE_URL = "https://aitoolblog.site.je/aitoolspro-backend-php";
+const ADMIN_KEY = "change-this-to-a-strong-secret";
+
+// ----- Newsletter subscribe (sidebar + footer widgets) -----
+document.querySelectorAll('.nl-btn').forEach(function (btn) {
+  btn.addEventListener('click', async function () {
+    const input = btn.previousElementSibling;
+    const email = input.value.trim();
+    if (!email || !email.includes('@')) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch(API_BASE_URL + '/subscribe.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Subscription failed');
+      alert(data.message);
+      input.value = '';
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
 });
 </script>
 </body>
